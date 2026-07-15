@@ -1,0 +1,9 @@
+{
+  "repos": [
+    {
+      "id": "paysplit",
+      "name": "PaySplit",
+      "repository": "paysplit"
+    }
+  ]
+}

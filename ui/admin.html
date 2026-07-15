@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PaySplit</title>
+    <link rel="stylesheet" href="/ext-assets/paysplit/_lnbits/bundle.min.css" />
+    <link
+      rel="stylesheet"
+      href="/ext-assets/paysplit/_lnbits/material-icons.css"
+    />
+    <link rel="stylesheet" href="/ext-assets/paysplit/app.css" />
+  </head>
+  <body data-theme="bitcoin" class="body--dark">
+    <main id="paysplit-admin" class="paysplit-page">
+      <header class="paysplit-header">
+        <img
+          class="paysplit-icon"
+          src="/ext-assets/paysplit/assets/icon.png"
+          alt=""
+        />
+        <div>
+          <h1>PaySplit</h1>
+          <p>Split incoming wallet payments to LNURL-pay targets.</p>
+        </div>
+      </header>
+
+      <section class="paysplit-card">
+        <div class="paysplit-card-header">
+          <div>
+            <h2>Source Wallet</h2>
+            <p>Pick the wallet whose incoming payments should be split.</p>
+          </div>
+          <button id="refreshButton" class="paysplit-icon-button" type="button">
+            <span class="material-icons">refresh</span>
+          </button>
+        </div>
+
+        <div class="paysplit-grid">
+          <label class="paysplit-field">
+            <span>Wallet</span>
+            <select id="walletSelect"></select>
+          </label>
+
+          <label class="paysplit-field">
+            <span>Max split amount</span>
+            <input
+              id="maxAmountInput"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="Optional sats limit"
+            />
+          </label>
+        </div>
+
+        <label class="paysplit-toggle">
+          <input id="enabledInput" type="checkbox" checked />
+          <span>Enabled</span>
+        </label>
+      </section>
+
+      <section class="paysplit-card">
+        <div class="paysplit-card-header">
+          <div>
+            <h2>Split Targets</h2>
+            <p>Total percentage must be 100 or less.</p>
+          </div>
+          <button id="addTargetButton" class="paysplit-button" type="button">
+            <span class="material-icons">add</span>
+            Add target
+          </button>
+        </div>
+
+        <div class="paysplit-target-summary">
+          <span id="targetSummary">0% configured</span>
+          <span id="remainingSummary">100% remains in source wallet</span>
+        </div>
+
+        <div class="paysplit-table-wrap">
+          <table class="paysplit-table">
+            <thead>
+              <tr>
+                <th>Alias</th>
+                <th>Lightning Address or LNURL</th>
+                <th class="paysplit-percent-col">Percent</th>
+                <th class="paysplit-action-col"></th>
+              </tr>
+            </thead>
+            <tbody id="targetsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="paysplit-actions">
+        <button id="deleteButton" class="paysplit-button danger" type="button">
+          <span class="material-icons">delete</span>
+          Delete config
+        </button>
+        <button id="saveButton" class="paysplit-button primary" type="button">
+          <span class="material-icons">save</span>
+          Save
+        </button>
+      </section>
+
+      <section id="statusBox" class="paysplit-status" hidden></section>
+    </main>
+
+    <script src="/ext-assets/paysplit/lnbits-extension-sdk.js"></script>
+    <script src="/ext-assets/paysplit/admin.js"></script>
+  </body>
+</html>

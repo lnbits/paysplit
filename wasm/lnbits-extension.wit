@@ -1,0 +1,120 @@
+package lnbits:extension;
+
+interface host {
+  record storage-get-request {
+    table: string,
+    id: string
+  }
+
+  record storage-get-response {
+    data-json: option<string>
+  }
+
+  record storage-set-request {
+    table: string,
+    data-json: string
+  }
+
+  record storage-set-response {
+    ok: bool
+  }
+
+  record storage-paginated-request {
+    table: string,
+    filters-json: string,
+    search: string,
+    search-fields: list<string>,
+    sort-by: string,
+    descending: bool,
+    limit: u32,
+    offset: u32
+  }
+
+  record storage-paginated-response {
+    rows-json: string,
+    total: u64
+  }
+
+  record storage-delete-request {
+    table: string,
+    id: string
+  }
+
+  record storage-delete-response {
+    ok: bool
+  }
+
+  record pay-lnurl-request {
+    wallet-id: string,
+    lnurl: string,
+    amount: f64,
+    currency: string,
+    comment: option<string>,
+    description: string,
+    max-sat: option<u64>,
+    extra: list<tuple<string, string>>
+  }
+
+  record pay-invoice-response {
+    ok: bool,
+    error: option<string>,
+    checking-id: option<string>,
+    payment-hash: option<string>,
+    status: option<string>,
+    amount-msat: u64,
+    fee-msat: u64,
+    pending: bool,
+    success: bool
+  }
+
+  record user-wallet-summary {
+    id: string,
+    name: string,
+    currency: option<string>
+  }
+
+  record list-user-wallets-response {
+    wallets: list<user-wallet-summary>
+  }
+
+  record random-id-request {
+    prefix: string
+  }
+
+  record random-id-response {
+    id: string
+  }
+
+  record now-response {
+    timestamp: u64
+  }
+
+  record log-request {
+    level: string,
+    message: string
+  }
+
+  record log-response {
+    ok: bool
+  }
+
+  storage-get: func(request: storage-get-request) -> storage-get-response;
+  storage-set: func(request: storage-set-request) -> storage-set-response;
+  storage-get-paginated: func(request: storage-paginated-request) -> storage-paginated-response;
+  storage-delete: func(request: storage-delete-request) -> storage-delete-response;
+  pay-lnurl: func(request: pay-lnurl-request) -> pay-invoice-response;
+  list-user-wallets: func() -> list-user-wallets-response;
+  random-id: func(request: random-id-request) -> random-id-response;
+  now: func() -> now-response;
+  log: func(request: log-request) -> log-response;
+}
+
+world paysplit {
+  import host;
+
+  export list-wallets: func(request-json: string) -> string;
+  export get-source: func(request-json: string) -> string;
+  export save-source: func(request-json: string) -> string;
+  export delete-source: func(request-json: string) -> string;
+  export record-payment: func(event-json: string) -> string;
+}

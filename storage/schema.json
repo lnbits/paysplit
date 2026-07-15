@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "tables": {
+    "sources": {
+      "fields": [
+        {
+          "name": "id",
+          "type": "string"
+        },
+        {
+          "name": "wallet_id",
+          "type": "string"
+        },
+        {
+          "name": "wallet_name",
+          "type": "string"
+        },
+        {
+          "name": "max_amount",
+          "type": "integer"
+        },
+        {
+          "name": "enabled",
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "type": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime"
+        }
+      ]
+    },
+    "targets": {
+      "fields": [
+        {
+          "name": "id",
+          "type": "string"
+        },
+        {
+          "name": "source_wallet_id",
+          "type": "string"
+        },
+        {
+          "name": "alias",
+          "type": "string"
+        },
+        {
+          "name": "lnurl",
+          "type": "string"
+        },
+        {
+          "name": "percent",
+          "type": "number"
+        },
+        {
+          "name": "created_at",
+          "type": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "type": "datetime"
+        }
+      ]
+    },
+    "splits": {
+      "fields": [
+        {
+          "name": "id",
+          "type": "string"
+        },
+        {
+          "name": "source_wallet_id",
+          "type": "string"
+        },
+        {
+          "name": "target_id",
+          "type": "string"
+        },
+        {
+          "name": "source_payment_hash",
+          "type": "string"
+        },
+        {
+          "name": "target_payment_hash",
+          "type": "string"
+        },
+        {
+          "name": "amount_sat",
+          "type": "integer"
+        },
+        {
+          "name": "status",
+          "type": "string"
+        },
+        {
+          "name": "error",
+          "type": "string"
+        },
+        {
+          "name": "created_at",
+          "type": "datetime"
+        }
+      ]
+    }
+  },
+  "indexes": [
+    {
+      "table": "targets",
+      "name": "targets_by_source_wallet",
+      "field": "source_wallet_id"
+    },
+    {
+      "table": "splits",
+      "name": "splits_by_source_payment",
+      "field": "source_payment_hash"
+    }
+  ]
+}
