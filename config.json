@@ -40,6 +40,7 @@
       "auth": "user"
     }
   ],
+  "openapi": "wasm/openapi.json",
   "api_routes": [
     {
       "method": "GET",

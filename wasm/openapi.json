@@ -1,0 +1,292 @@
+{
+  "schemas": {
+    "ApiErrorResult": {
+      "type": "object",
+      "required": ["ok", "error"],
+      "properties": {
+        "ok": {"type": "boolean", "enum": [false]},
+        "error": {"type": "string"}
+      }
+    },
+    "HttpError": {
+      "type": "object",
+      "properties": {
+        "detail": {"type": "string"}
+      }
+    },
+    "Wallet": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"type": "string", "description": "LNbits wallet ID."},
+        "name": {"type": "string", "description": "Wallet display name."},
+        "currency": {"type": "string", "nullable": true}
+      }
+    },
+    "WalletListResponse": {
+      "type": "object",
+      "required": ["ok", "data"],
+      "properties": {
+        "ok": {"type": "boolean", "enum": [true]},
+        "data": {
+          "type": "object",
+          "required": ["wallets"],
+          "properties": {
+            "wallets": {"type": "array", "items": {"$ref": "#/schemas/Wallet"}}
+          }
+        }
+      }
+    },
+    "Source": {
+      "type": "object",
+      "required": [
+        "id",
+        "wallet_id",
+        "wallet_name",
+        "max_amount",
+        "enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {"type": "string"},
+        "wallet_id": {"type": "string"},
+        "wallet_name": {"type": "string"},
+        "max_amount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Maximum source payment amount to split in satoshis. Zero means unlimited."
+        },
+        "enabled": {"type": "boolean"},
+        "created_at": {"type": "integer", "format": "int64"},
+        "updated_at": {"type": "integer", "format": "int64"}
+      }
+    },
+    "Target": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_wallet_id",
+        "alias",
+        "lnurl",
+        "percent",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {"type": "string"},
+        "source_wallet_id": {"type": "string"},
+        "alias": {"type": "string"},
+        "lnurl": {
+          "type": "string",
+          "description": "Lightning Address or LNURL-pay target."
+        },
+        "percent": {"type": "number", "minimum": 0, "maximum": 100},
+        "created_at": {"type": "integer", "format": "int64"},
+        "updated_at": {"type": "integer", "format": "int64"}
+      }
+    },
+    "TargetInput": {
+      "type": "object",
+      "required": ["lnurl", "percent"],
+      "properties": {
+        "id": {"type": "string"},
+        "alias": {"type": "string"},
+        "lnurl": {
+          "type": "string",
+          "description": "Lightning Address or LNURL-pay target."
+        },
+        "percent": {"type": "number", "minimum": 0, "maximum": 100}
+      }
+    },
+    "SaveSourceRequest": {
+      "type": "object",
+      "required": ["walletId", "targets"],
+      "properties": {
+        "walletId": {"type": "string"},
+        "walletName": {"type": "string"},
+        "maxAmount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Maximum source payment amount to split in satoshis. Zero means unlimited."
+        },
+        "enabled": {"type": "boolean"},
+        "targets": {
+          "type": "array",
+          "items": {"$ref": "#/schemas/TargetInput"}
+        }
+      }
+    },
+    "SourceConfigData": {
+      "type": "object",
+      "required": ["source", "targets"],
+      "properties": {
+        "source": {"$ref": "#/schemas/Source", "nullable": true},
+        "targets": {"type": "array", "items": {"$ref": "#/schemas/Target"}}
+      }
+    },
+    "SourceConfigResponse": {
+      "type": "object",
+      "required": ["ok", "data"],
+      "properties": {
+        "ok": {"type": "boolean", "enum": [true]},
+        "data": {"$ref": "#/schemas/SourceConfigData"}
+      }
+    },
+    "DeleteSourceResponse": {
+      "type": "object",
+      "required": ["ok", "data"],
+      "properties": {
+        "ok": {"type": "boolean", "enum": [true]},
+        "data": {
+          "type": "object",
+          "required": ["deleted"],
+          "properties": {
+            "deleted": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  },
+  "commonResponses": {
+    "400": {
+      "description": "Invalid request payload or route configuration.",
+      "content": {
+        "application/json": {"schema": {"$ref": "#/schemas/HttpError"}}
+      }
+    },
+    "403": {
+      "description": "The user is not allowed to call this extension route.",
+      "content": {
+        "application/json": {"schema": {"$ref": "#/schemas/HttpError"}}
+      }
+    },
+    "404": {
+      "description": "The requested WASM export or resource was not found.",
+      "content": {
+        "application/json": {"schema": {"$ref": "#/schemas/HttpError"}}
+      }
+    },
+    "413": {
+      "description": "The request body exceeded the extension runtime limit.",
+      "content": {
+        "application/json": {"schema": {"$ref": "#/schemas/HttpError"}}
+      }
+    }
+  },
+  "routes": {
+    "list-wallets": {
+      "summary": "List wallets",
+      "description": "Returns wallets available to the authenticated user.",
+      "operationId": "paysplit_list_wallets",
+      "responses": {
+        "200": {
+          "description": "Wallet list or extension-level error.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {"$ref": "#/schemas/WalletListResponse"},
+                  {"$ref": "#/schemas/ApiErrorResult"}
+                ]
+              }
+            }
+          }
+        },
+        "400": {"$ref": "#/commonResponses/400"},
+        "403": {"$ref": "#/commonResponses/403"}
+      }
+    },
+    "get-source": {
+      "summary": "Get source",
+      "description": "Returns split configuration for one source wallet.",
+      "operationId": "paysplit_get_source",
+      "parameters": [
+        {
+          "name": "wallet_id",
+          "in": "path",
+          "required": true,
+          "schema": {"type": "string"}
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Source configuration or extension-level error.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {"$ref": "#/schemas/SourceConfigResponse"},
+                  {"$ref": "#/schemas/ApiErrorResult"}
+                ]
+              }
+            }
+          }
+        },
+        "400": {"$ref": "#/commonResponses/400"},
+        "403": {"$ref": "#/commonResponses/403"},
+        "404": {"$ref": "#/commonResponses/404"}
+      }
+    },
+    "save-source": {
+      "summary": "Save source",
+      "description": "Stores split targets for a source wallet.",
+      "operationId": "paysplit_save_source",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {"schema": {"$ref": "#/schemas/SaveSourceRequest"}}
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Saved source configuration or extension-level error.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {"$ref": "#/schemas/SourceConfigResponse"},
+                  {"$ref": "#/schemas/ApiErrorResult"}
+                ]
+              }
+            }
+          }
+        },
+        "400": {"$ref": "#/commonResponses/400"},
+        "403": {"$ref": "#/commonResponses/403"},
+        "413": {"$ref": "#/commonResponses/413"}
+      }
+    },
+    "delete-source": {
+      "summary": "Delete source",
+      "description": "Deletes a source wallet split configuration and its targets.",
+      "operationId": "paysplit_delete_source",
+      "parameters": [
+        {
+          "name": "wallet_id",
+          "in": "path",
+          "required": true,
+          "schema": {"type": "string"}
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Deletion result or extension-level error.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {"$ref": "#/schemas/DeleteSourceResponse"},
+                  {"$ref": "#/schemas/ApiErrorResult"}
+                ]
+              }
+            }
+          }
+        },
+        "400": {"$ref": "#/commonResponses/400"},
+        "403": {"$ref": "#/commonResponses/403"},
+        "404": {"$ref": "#/commonResponses/404"}
+      }
+    }
+  }
+}
