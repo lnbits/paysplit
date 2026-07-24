@@ -22,7 +22,7 @@ jobs:
       - name: Install WASM build tools
         env:
           WASI_SDK_VERSION: 33
-          WASI_SDK_RELEASE: 33.0
+          WASI_SDK_RELEASE: "33.0"
         run: |
           rustup default stable
           cargo install wit-bindgen-cli --version 0.59.0 --locked
