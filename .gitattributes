@@ -1,0 +1,3 @@
+# Keep development sources, build artifacts, and Python tests out of WASM
+# release archives. They remain available in Git checkouts.
+/dev export-ignore
