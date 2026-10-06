@@ -2,8 +2,8 @@
   "id": "paysplit",
   "name": "PaySplit",
   "short_description": "Split incoming wallet payments to LNURL-pay targets.",
-  "version": "0.1.1",
-  "min_lnbits_version": "1.5.5",
+  "version": "0.2.1",
+  "min_lnbits_version": "1.6.2",
   "extension_type": "wasm",
   "wasm": {
     "module": "wasm/module.wasm",
