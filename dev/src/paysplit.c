@@ -251,6 +251,59 @@ void lnbits_log(const char *level, const char *message) {
   lnbits_extension_host_log_request_free(&request);
 }
 
+static void send_user_notification(const char *type, const char *message) {
+  size_t remaining = strlen(message);
+  while (remaining) {
+    size_t length = remaining;
+    if (length > 4096) {
+      length = 4096;
+      // Keep UTF-8 characters and split lines intact where possible.
+      while (((unsigned char)message[length] & 0xc0) == 0x80) {
+        length--;
+      }
+      for (size_t i = length; i > 0; i--) {
+        if (message[i - 1] == '\n') {
+          length = i;
+          break;
+        }
+      }
+      if (strcmp(type, "telegram") == 0) {
+        size_t backslashes = 0;
+        while (backslashes < length && message[length - backslashes - 1] == '\\') {
+          backslashes++;
+        }
+        length -= backslashes % 2;
+      }
+    }
+    lnbits_extension_host_send_user_notification_request_t request = {0};
+    lnbits_extension_host_send_user_notification_response_t response = {0};
+    paysplit_string_dup(&request.type, type);
+    request.message.ptr = malloc(length);
+    request.message.len = length;
+    memcpy(request.message.ptr, message, length);
+    lnbits_extension_host_notifications_send_user_notification(&request, &response);
+    lnbits_extension_host_send_user_notification_request_free(&request);
+    message += length;
+    remaining -= length;
+  }
+}
+
+static void send_payment_notifications(const char *message) {
+  send_user_notification("nostr", message);
+
+  // LNbits sends Telegram messages with legacy Markdown enabled.
+  Buffer telegram;
+  buffer_init(&telegram);
+  for (const char *cursor = message; *cursor; cursor++) {
+    if (strchr("_*`[\\", *cursor)) {
+      buffer_append(&telegram, "\\");
+    }
+    buffer_append(&telegram, "%c", *cursor);
+  }
+  send_user_notification("telegram", telegram.data);
+  free(telegram.data);
+}
+
 char *lnbits_list_user_wallets_json(void) {
   lnbits_extension_host_list_user_wallets_response_t response = {0};
   lnbits_extension_host_list_user_wallets(&response);
@@ -894,7 +947,11 @@ char *record_payment(const char *event_json) {
   TargetList targets = parse_targets_array(targets_json);
   uint32_t sent = 0;
   uint32_t failed = 0;
+  uint32_t pending = 0;
   uint64_t now = lnbits_now();
+  Buffer notification;
+  buffer_init(&notification);
+  buffer_append(&notification, "Received amount: %lld sats", (long long)amount_sat);
 
   for (size_t i = 0; i < targets.len; i++) {
     int64_t split_sat = (int64_t)floor(((double)amount_sat * targets.items[i].percent) / 100.0);
@@ -933,7 +990,18 @@ char *record_payment(const char *event_json) {
     char *target_id = json_escape(targets.items[i].id);
     char *source_hash = json_escape(payment_hash);
     char *target_hash = json_escape(pay_response.payment_hash);
-    char *status = json_escape(pay_response.success ? "success" : "failed");
+    const char *outcome = pay_response.success ? "success" :
+      pay_response.pending ? "pending" : "fail";
+    const char *label = targets.items[i].alias && *targets.items[i].alias ?
+      targets.items[i].alias : targets.items[i].lnurl;
+    buffer_append(
+      &notification,
+      "\nSplit %u: %s %lld sats. %s",
+      sent + pending + failed + 1,
+      label,
+      (long long)split_sat,
+      outcome);
+    char *status = json_escape(strcmp(outcome, "fail") == 0 ? "failed" : outcome);
     char *error = json_escape(pay_response.error);
     Buffer split;
     buffer_init(&split);
@@ -955,6 +1023,8 @@ char *record_payment(const char *event_json) {
 
     if (pay_response.success) {
       sent++;
+    } else if (pay_response.pending) {
+      pending++;
     } else {
       failed++;
     }
@@ -973,9 +1043,12 @@ char *record_payment(const char *event_json) {
     free(pay_response.status);
   }
 
+  send_payment_notifications(notification.data);
+  free(notification.data);
+
   Buffer data;
   buffer_init(&data);
-  buffer_append(&data, "{\"sent\":%u,\"failed\":%u}", sent, failed);
+  buffer_append(&data, "{\"sent\":%u,\"failed\":%u,\"pending\":%u}", sent, failed, pending);
   char *response = ok_json(data.data);
   free(data.data);
   free(wallet_id);

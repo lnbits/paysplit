@@ -32,6 +32,9 @@ extern int64_t __wasm_import_lnbits_extension_host_now(void);
 __attribute__((__import_module__("lnbits:extension/host"), __import_name__("log")))
 extern int32_t __wasm_import_lnbits_extension_host_log(uint8_t *, size_t, uint8_t *, size_t);
 
+__attribute__((__import_module__("lnbits:extension/host"), __import_name__("notifications-send-user-notification")))
+extern int32_t __wasm_import_lnbits_extension_host_notifications_send_user_notification(uint8_t *, size_t, uint8_t *, size_t);
+
 // Exported Functions from `paysplit`
 
 __attribute__((__weak__, __export_name__("cabi_post_list-wallets")))
@@ -202,6 +205,11 @@ void lnbits_extension_host_random_id_response_free(lnbits_extension_host_random_
 
 void lnbits_extension_host_log_request_free(lnbits_extension_host_log_request_t *ptr) {
   paysplit_string_free(&ptr->level);
+  paysplit_string_free(&ptr->message);
+}
+
+void lnbits_extension_host_send_user_notification_request_free(lnbits_extension_host_send_user_notification_request_t *ptr) {
+  paysplit_string_free(&ptr->type);
   paysplit_string_free(&ptr->message);
 }
 
@@ -398,6 +406,13 @@ void lnbits_extension_host_now(lnbits_extension_host_now_response_t *ret) {
 void lnbits_extension_host_log(lnbits_extension_host_log_request_t *request, lnbits_extension_host_log_response_t *ret) {
   int32_t ret0 = __wasm_import_lnbits_extension_host_log((uint8_t *) ((*request).level).ptr, ((*request).level).len, (uint8_t *) ((*request).message).ptr, ((*request).message).len);
   *ret = (lnbits_extension_host_log_response_t) {
+    (bool) ret0,
+  };
+}
+
+void lnbits_extension_host_notifications_send_user_notification(lnbits_extension_host_send_user_notification_request_t *request, lnbits_extension_host_send_user_notification_response_t *ret) {
+  int32_t ret0 = __wasm_import_lnbits_extension_host_notifications_send_user_notification((uint8_t *) ((*request).type).ptr, ((*request).type).len, (uint8_t *) ((*request).message).ptr, ((*request).message).len);
+  *ret = (lnbits_extension_host_send_user_notification_response_t) {
     (bool) ret0,
   };
 }

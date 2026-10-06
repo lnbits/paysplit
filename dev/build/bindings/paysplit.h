@@ -141,6 +141,15 @@ typedef struct lnbits_extension_host_log_response_t {
   bool   ok;
 } lnbits_extension_host_log_response_t;
 
+typedef struct lnbits_extension_host_send_user_notification_request_t {
+  paysplit_string_t   type;
+  paysplit_string_t   message;
+} lnbits_extension_host_send_user_notification_request_t;
+
+typedef struct lnbits_extension_host_send_user_notification_response_t {
+  bool   queued;
+} lnbits_extension_host_send_user_notification_response_t;
+
 // Imported Functions from `lnbits:extension/host`
 extern void lnbits_extension_host_storage_get(lnbits_extension_host_storage_get_request_t *request, lnbits_extension_host_storage_get_response_t *ret);
 extern void lnbits_extension_host_storage_set(lnbits_extension_host_storage_set_request_t *request, lnbits_extension_host_storage_set_response_t *ret);
@@ -151,6 +160,7 @@ extern void lnbits_extension_host_list_user_wallets(lnbits_extension_host_list_u
 extern void lnbits_extension_host_random_id(lnbits_extension_host_random_id_request_t *request, lnbits_extension_host_random_id_response_t *ret);
 extern void lnbits_extension_host_now(lnbits_extension_host_now_response_t *ret);
 extern void lnbits_extension_host_log(lnbits_extension_host_log_request_t *request, lnbits_extension_host_log_response_t *ret);
+extern void lnbits_extension_host_notifications_send_user_notification(lnbits_extension_host_send_user_notification_request_t *request, lnbits_extension_host_send_user_notification_response_t *ret);
 
 // Exported Functions from `paysplit`
 void exports_paysplit_list_wallets(paysplit_string_t *request_json, paysplit_string_t *ret);
@@ -198,6 +208,8 @@ void lnbits_extension_host_random_id_request_free(lnbits_extension_host_random_i
 void lnbits_extension_host_random_id_response_free(lnbits_extension_host_random_id_response_t *ptr);
 
 void lnbits_extension_host_log_request_free(lnbits_extension_host_log_request_t *ptr);
+
+void lnbits_extension_host_send_user_notification_request_free(lnbits_extension_host_send_user_notification_request_t *ptr);
 
 // Sets the string `ret` to reference the input string `s` without copying it
 void paysplit_string_set(paysplit_string_t *ret, const char*s);

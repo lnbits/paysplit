@@ -87,6 +87,10 @@
       "description": "Send configured split payments from approved source wallets."
     },
     {
+      "id": "notifications.send_user_notification",
+      "description": "Send payment split summaries to the wallet owner through Nostr and Telegram."
+    },
+    {
       "id": "ext.storage.read",
       "description": "Read PaySplit source wallet and target configuration."
     },
