@@ -58,6 +58,13 @@
           "description": "Maximum source payment amount to split in satoshis. Zero means unlimited."
         },
         "enabled": {"type": "boolean"},
+        "notification_channels": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["email", "telegram", "nostr"]},
+          "uniqueItems": true,
+          "default": [],
+          "description": "Notification channels for incoming payment summaries. An empty list disables notifications."
+        },
         "created_at": {"type": "integer", "format": "int64"},
         "updated_at": {"type": "integer", "format": "int64"}
       }
@@ -111,6 +118,13 @@
           "description": "Maximum source payment amount to split in satoshis. Zero means unlimited."
         },
         "enabled": {"type": "boolean"},
+        "notificationChannels": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["email", "telegram", "nostr"]},
+          "uniqueItems": true,
+          "default": [],
+          "description": "Notification channels for incoming payment summaries. Defaults to no notifications."
+        },
         "targets": {
           "type": "array",
           "items": {"$ref": "#/schemas/TargetInput"}

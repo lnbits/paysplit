@@ -88,7 +88,7 @@
     },
     {
       "id": "notifications.send_user_notification",
-      "description": "Send payment split summaries to the wallet owner through Nostr and Telegram."
+      "description": "Send payment split summaries to the wallet owner through their selected Mail, Telegram, and Nostr channels."
     },
     {
       "id": "ext.storage.read",

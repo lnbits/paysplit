@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "operations": [
+    {
+      "op": "add_field",
+      "table": "sources",
+      "field": "notification_channels",
+      "type": "string",
+      "list": true,
+      "default": []
+    }
+  ]
+}

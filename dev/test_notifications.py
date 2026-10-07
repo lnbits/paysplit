@@ -6,6 +6,7 @@ Run after dev/build.sh using the LNbits Python environment:
 
 import json
 import unittest
+from itertools import combinations
 from pathlib import Path
 
 from wasmtime import Config, Engine, Store, WasiConfig, component
@@ -31,7 +32,12 @@ class PaymentNotificationsTest(unittest.TestCase):
         )
 
     def setUp(self):
-        self.source = {"id": "wallet-1", "enabled": True, "max_amount": 0}
+        self.source = {
+            "id": "wallet-1",
+            "enabled": True,
+            "max_amount": 0,
+            "notification_channels": ["nostr", "telegram"],
+        }
         self.targets = [
             {
                 "id": "alice",
@@ -67,6 +73,9 @@ class PaymentNotificationsTest(unittest.TestCase):
         )
 
     def storage_set(self, store, request):
+        if request.table == "sources":
+            self.source = json.loads(getattr(request, "data-json"))
+            return record(ok=True)
         self.assertEqual(request.table, "splits")
         self.calls.append("save")
         self.splits.append(json.loads(getattr(request, "data-json")))
@@ -97,7 +106,7 @@ class PaymentNotificationsTest(unittest.TestCase):
         self.notifications.append((request.type, request.message))
         return record(queued=self.queued)
 
-    def invoke(self, **event_fields):
+    def call_export(self, export_name, payload):
         store = Store(self.engine)
         store.set_wasi(WasiConfig())
         linker = component.Linker(self.engine)
@@ -120,16 +129,87 @@ class PaymentNotificationsTest(unittest.TestCase):
                 }.items():
                     host.add_func(name, handler)
         instance = linker.instantiate(store, self.module)
-        function = instance.get_func(store, "record-payment")
+        function = instance.get_func(store, export_name)
+        result = function(store, json.dumps(payload, ensure_ascii=False))
+        function.post_return(store)
+        return json.loads(result)
+
+    def invoke(self, **event_fields):
         event = {
             "walletId": "wallet-1",
             "paymentHash": "incoming-hash",
             "amountMsat": 1000000,
         }
         event.update(event_fields)
-        result = function(store, json.dumps(event))
-        function.post_return(store)
-        return json.loads(result)
+        return self.call_export("record-payment", event)
+
+    def test_only_selected_channels_receive_notifications(self):
+        channels = ("email", "nostr", "telegram")
+        for count in range(4):
+            for selected in combinations(channels, count):
+                with self.subTest(selected=selected):
+                    self.setUp()
+                    self.source["notification_channels"] = list(selected)
+                    result = self.invoke()
+                    self.assertEqual(
+                        [kind for kind, _ in self.notifications], list(selected)
+                    )
+                    self.assertEqual(self.calls, ["pay", "save"] * 3 + list(selected))
+                    self.assertEqual(len(self.payments), 3)
+                    self.assertEqual(
+                        result,
+                        {"ok": True, "data": {"sent": 1, "failed": 1, "pending": 1}},
+                    )
+
+    def test_missing_channels_default_to_no_notifications(self):
+        del self.source["notification_channels"]
+        self.assertTrue(self.invoke()["ok"])
+        self.assertEqual(self.notifications, [])
+        self.assertEqual(len(self.payments), 3)
+
+    def test_duplicate_and_unknown_channels_do_not_add_notifications(self):
+        self.source["notification_channels"] = ["email", "email", "sms", "mail"]
+        self.invoke()
+        self.assertEqual([kind for kind, _ in self.notifications], ["email"])
+
+    def test_save_and_reload_notification_channels_then_clear_them(self):
+        self.targets = []
+        for channels in (["email", "nostr", "telegram"], ["telegram"], []):
+            with self.subTest(channels=channels):
+                saved = self.call_export(
+                    "save-source",
+                    {
+                        "walletId": "wallet-1",
+                        "enabled": True,
+                        "targets": [],
+                        "notificationChannels": channels,
+                    },
+                )
+                self.assertTrue(saved["ok"])
+                self.assertEqual(
+                    saved["data"]["source"]["notification_channels"], channels
+                )
+                loaded = self.call_export("get-source", {"walletId": "wallet-1"})
+                self.assertEqual(
+                    loaded["data"]["source"]["notification_channels"], channels
+                )
+                self.notifications = []
+                self.invoke()
+                self.assertEqual([kind for kind, _ in self.notifications], channels)
+
+    def test_saving_without_notification_channels_defaults_to_none(self):
+        self.targets = []
+        saved = self.call_export(
+            "save-source",
+            {
+                "walletId": "wallet-1",
+                "targets": [],
+            },
+        )
+        self.assertTrue(saved["ok"])
+        self.assertEqual(saved["data"]["source"]["notification_channels"], [])
+        self.invoke()
+        self.assertEqual(self.notifications, [])
 
     def test_summary_sent_to_both_channels_after_all_splits(self):
         result = self.invoke()
@@ -197,17 +277,19 @@ class PaymentNotificationsTest(unittest.TestCase):
         self.assertIn("Split 1: Ștefan ⚡ 500 sats. success", self.notifications[0][1])
 
     def test_telegram_escapes_aliases_and_lnurls(self):
+        self.source["notification_channels"] = ["email", "nostr", "telegram"]
         self.targets[0]["alias"] = "Alice_[team]*`"
         self.targets[1]["lnurl"] = "bob_smith@example.com"
         self.invoke()
-        nostr = self.notifications[0][1]
-        telegram = self.notifications[1][1]
+        email, nostr, telegram = [message for _, message in self.notifications]
+        self.assertEqual(email, nostr)
         self.assertIn("Alice_[team]*`", nostr)
         self.assertIn(r"Alice\_\[team]\*\`", telegram)
         self.assertIn("bob_smith@example.com", nostr)
         self.assertIn(r"bob\_smith@example.com", telegram)
 
     def test_long_summaries_preserve_every_split(self):
+        self.source["notification_channels"] = ["email", "nostr", "telegram"]
         self.targets = [
             {
                 "id": str(i),
@@ -223,7 +305,7 @@ class PaymentNotificationsTest(unittest.TestCase):
             f"\nSplit {i + 1}: {target['alias']} 10 sats. pending"
             for i, target in enumerate(self.targets)
         )
-        for channel in ("nostr", "telegram"):
+        for channel in ("email", "nostr", "telegram"):
             messages = [
                 message for kind, message in self.notifications if kind == channel
             ]

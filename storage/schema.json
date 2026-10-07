@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tables": {
     "sources": {
       "fields": [
@@ -22,6 +22,12 @@
         {
           "name": "enabled",
           "type": "boolean"
+        },
+        {
+          "name": "notification_channels",
+          "type": "string",
+          "list": true,
+          "default": []
         },
         {
           "name": "created_at",

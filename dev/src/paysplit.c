@@ -16,6 +16,9 @@
 #define TARGET_TABLE "targets"
 #define SPLIT_TABLE "splits"
 #define EXT_ID "paysplit"
+#define NOTIFY_EMAIL 1
+#define NOTIFY_NOSTR 2
+#define NOTIFY_TELEGRAM 4
 
 typedef struct {
   char *id;
@@ -23,6 +26,7 @@ typedef struct {
   char *wallet_name;
   int64_t max_amount;
   bool enabled;
+  unsigned int notification_channels;
   uint64_t created_at;
   uint64_t updated_at;
 } Source;
@@ -288,8 +292,16 @@ static void send_user_notification(const char *type, const char *message) {
   }
 }
 
-static void send_payment_notifications(const char *message) {
-  send_user_notification("nostr", message);
+static void send_payment_notifications(const char *message, unsigned int channels) {
+  if (channels & NOTIFY_EMAIL) {
+    send_user_notification("email", message);
+  }
+  if (channels & NOTIFY_NOSTR) {
+    send_user_notification("nostr", message);
+  }
+  if (!(channels & NOTIFY_TELEGRAM)) {
+    return;
+  }
 
   // LNbits sends Telegram messages with legacy Markdown enabled.
   Buffer telegram;
@@ -576,6 +588,42 @@ static char *json_array_slice(const char *json, const char *key) {
   return xstrdup("[]");
 }
 
+static unsigned int parse_notification_channels(const char *json, const char *key) {
+  char *array = json_array_slice(json, key);
+  const char *cursor = skip_ws(array + 1);
+  unsigned int channels = 0;
+  while (*cursor != ']') {
+    if (*cursor != '"') {
+      channels = 0;
+      break;
+    }
+    const char *end = strchr(++cursor, '"');
+    if (!end) {
+      channels = 0;
+      break;
+    }
+    size_t length = (size_t)(end - cursor);
+    if (length == 5 && strncmp(cursor, "email", length) == 0) {
+      channels |= NOTIFY_EMAIL;
+    } else if (length == 5 && strncmp(cursor, "nostr", length) == 0) {
+      channels |= NOTIFY_NOSTR;
+    } else if (length == 8 && strncmp(cursor, "telegram", length) == 0) {
+      channels |= NOTIFY_TELEGRAM;
+    }
+    cursor = skip_ws(end + 1);
+    if (*cursor == ']') {
+      break;
+    }
+    if (*cursor != ',') {
+      channels = 0;
+      break;
+    }
+    cursor = skip_ws(cursor + 1);
+  }
+  free(array);
+  return channels;
+}
+
 static TargetList parse_targets_array(const char *array_json) {
   TargetList list = {0};
   const char *cursor = array_json ? array_json : "[]";
@@ -615,6 +663,7 @@ static Source parse_source(const char *json) {
   source.wallet_name = json_string_value(json, "wallet_name");
   source.max_amount = (int64_t)json_number_value(json, "max_amount", 0);
   source.enabled = json_bool_value(json, "enabled", false);
+  source.notification_channels = parse_notification_channels(json, "notification_channels");
   source.created_at = (uint64_t)json_number_value(json, "created_at", 0);
   source.updated_at = (uint64_t)json_number_value(json, "updated_at", 0);
   return source;
@@ -648,7 +697,8 @@ static char *source_to_json(const Source *source) {
   buffer_append(
     &buffer,
     "{\"id\":\"%s\",\"wallet_id\":\"%s\",\"wallet_name\":\"%s\","
-    "\"max_amount\":%lld,\"enabled\":%s,\"created_at\":%llu,\"updated_at\":%llu}",
+    "\"max_amount\":%lld,\"enabled\":%s,\"created_at\":%llu,\"updated_at\":%llu,"
+    "\"notification_channels\":[",
     id,
     wallet_id,
     wallet_name,
@@ -656,6 +706,15 @@ static char *source_to_json(const Source *source) {
     source->enabled ? "true" : "false",
     (unsigned long long)source->created_at,
     (unsigned long long)source->updated_at);
+  const char *separator = "";
+  const char *channels[] = {"email", "nostr", "telegram"};
+  for (size_t i = 0; i < 3; i++) {
+    if (source->notification_channels & (1u << i)) {
+      buffer_append(&buffer, "%s\"%s\"", separator, channels[i]);
+      separator = ",";
+    }
+  }
+  buffer_append(&buffer, "]}");
   free(id);
   free(wallet_id);
   free(wallet_name);
@@ -810,6 +869,7 @@ char *save_source(const char *request_json) {
     .wallet_name = wallet_name && *wallet_name ? wallet_name : wallet_id,
     .max_amount = (int64_t)json_number_value(request_json, "maxAmount", 0),
     .enabled = json_bool_value(request_json, "enabled", true),
+    .notification_channels = parse_notification_channels(request_json, "notificationChannels"),
     .created_at = existing.created_at ? existing.created_at : now,
     .updated_at = now,
   };
@@ -1043,7 +1103,7 @@ char *record_payment(const char *event_json) {
     free(pay_response.status);
   }
 
-  send_payment_notifications(notification.data);
+  send_payment_notifications(notification.data, source.notification_channels);
   free(notification.data);
 
   Buffer data;

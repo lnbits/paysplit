@@ -58,6 +58,33 @@
           <input id="enabledInput" type="checkbox" checked />
           <span>Enabled</span>
         </label>
+
+        <div class="paysplit-field paysplit-notifications">
+          <span id="notificationLabel">Notify me on new payment</span>
+          <details id="notificationDropdown" class="paysplit-multiselect">
+            <summary aria-labelledby="notificationLabel notificationSummary">
+              <span id="notificationSummary">None</span>
+            </summary>
+            <div
+              class="paysplit-multiselect-options"
+              role="group"
+              aria-labelledby="notificationLabel"
+            >
+              <label>
+                <input type="checkbox" name="notificationChannel" value="email" />
+                Mail
+              </label>
+              <label>
+                <input type="checkbox" name="notificationChannel" value="telegram" />
+                Telegram
+              </label>
+              <label>
+                <input type="checkbox" name="notificationChannel" value="nostr" />
+                Nostr
+              </label>
+            </div>
+          </details>
+        </div>
       </section>
 
       <section class="paysplit-card">

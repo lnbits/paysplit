@@ -23,6 +23,11 @@
       deleteButton: document.getElementById('deleteButton'),
       enabledInput: document.getElementById('enabledInput'),
       maxAmountInput: document.getElementById('maxAmountInput'),
+      notificationDropdown: document.getElementById('notificationDropdown'),
+      notificationSummary: document.getElementById('notificationSummary'),
+      notificationChannels: Array.from(
+        document.querySelectorAll('input[name="notificationChannel"]')
+      ),
       refreshButton: document.getElementById('refreshButton'),
       remainingSummary: document.getElementById('remainingSummary'),
       saveButton: document.getElementById('saveButton'),
@@ -44,6 +49,18 @@
     els.walletSelect.addEventListener('change', loadSelectedSource)
     els.targetsBody.addEventListener('input', onTargetInput)
     els.targetsBody.addEventListener('click', onTargetClick)
+    els.notificationDropdown.addEventListener('change', updateNotificationSummary)
+    document.addEventListener('click', event => {
+      if (!els.notificationDropdown.contains(event.target)) {
+        els.notificationDropdown.open = false
+      }
+    })
+    els.notificationDropdown.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        els.notificationDropdown.open = false
+        els.notificationDropdown.querySelector('summary').focus()
+      }
+    })
   }
 
   async function refresh() {
@@ -105,6 +122,20 @@
   function renderSource() {
     els.enabledInput.checked = state.source?.enabled !== false
     els.maxAmountInput.value = state.source?.max_amount || ''
+    const channels = state.source?.notification_channels || []
+    for (const input of els.notificationChannels) {
+      input.checked = channels.includes(input.value)
+    }
+    els.notificationDropdown.open = false
+    updateNotificationSummary()
+  }
+
+  function updateNotificationSummary() {
+    els.notificationSummary.textContent =
+      els.notificationChannels
+        .filter(input => input.checked)
+        .map(input => input.parentElement.textContent.trim())
+        .join(', ') || 'None'
   }
 
   function renderTargets() {
@@ -260,6 +291,9 @@
     return {
       enabled: Boolean(els.enabledInput.checked),
       maxAmount: numericValue(els.maxAmountInput.value),
+      notificationChannels: els.notificationChannels
+        .filter(input => input.checked)
+        .map(input => input.value),
       targets,
       walletId: wallet.id,
       walletName: wallet.name || wallet.id

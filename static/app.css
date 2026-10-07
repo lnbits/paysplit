@@ -102,6 +102,85 @@ body {
   margin-top: 14px;
 }
 
+.paysplit-notifications {
+  margin-top: 14px;
+  max-width: 360px;
+}
+
+.paysplit-multiselect {
+  position: relative;
+}
+
+.paysplit-multiselect summary {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+.paysplit-multiselect summary::-webkit-details-marker {
+  display: none;
+}
+
+.paysplit-multiselect summary::after {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  content: '';
+  flex-shrink: 0;
+  height: 7px;
+  transform: rotate(45deg);
+  width: 7px;
+}
+
+.paysplit-multiselect[open] summary::after {
+  transform: rotate(225deg);
+}
+
+.paysplit-multiselect summary span {
+  color: #fff;
+  font-size: inherit;
+}
+
+.paysplit-multiselect-options {
+  background: #292929;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  left: 0;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1;
+}
+
+.paysplit-multiselect-options label {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px;
+}
+
+.paysplit-multiselect-options label:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.paysplit-multiselect-options input {
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  width: 18px;
+}
+
 .paysplit-button,
 .paysplit-icon-button {
   align-items: center;
